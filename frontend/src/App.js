@@ -3,16 +3,24 @@ import React, { useState, useEffect, useRef } from "react";
 function App() {
   const [listening, setListening] = useState(false);
   const [text, setText] = useState("");
-  const [status, setStatus] = useState("Idle");
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState(null);
+  const [rate, setRate] = useState(1);
+  const [pitch, setPitch] = useState(1);
 
-  const silenceTimer = useRef(null);
-  const SpeechRecognition =
-    window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+  const recognitionRef = useRef(null);
 
+  // Initialize Speech Recognition
   useEffect(() => {
-    if (!recognition) return;
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
+    if (!SpeechRecognition) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
@@ -23,88 +31,163 @@ function App() {
         finalTranscript += event.results[i][0].transcript;
       }
       setText(finalTranscript);
-      resetSilenceTimer();
     };
 
     recognition.onerror = (e) => console.error("Speech error:", e);
+    recognition.onend = () => setListening(false);
 
-    recognition.onend = () => {
-      // Automatically restart if still supposed to listen
-      if (listening) recognition.start();
+    recognitionRef.current = recognition;
+
+    return () => recognition.stop();
+  }, []);
+
+  // Load available voices for speech synthesis
+  useEffect(() => {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+
+    const loadVoices = () => {
+      const availableVoices = synth.getVoices();
+      setVoices(availableVoices);
+      if (availableVoices.length && !selectedVoice) {
+        setSelectedVoice(availableVoices[0].name);
+      }
     };
-  }, [listening, recognition]);
 
-  // --- Silence detection ---
-  const resetSilenceTimer = () => {
-    if (silenceTimer.current) clearTimeout(silenceTimer.current);
-    silenceTimer.current = setTimeout(() => {
-      handleSilence();
-    }, 30000); // 30 seconds
-  };
+    loadVoices();
+    synth.onvoiceschanged = loadVoices;
+  }, [selectedVoice]);
 
-  const handleSilence = () => {
-    stopListening();
-    setStatus("Stopped due to 30s silence");
-  };
-
-  // --- Start/Stop listening ---
+  // Start / Stop Speech Recognition
   const startListening = () => {
-    if (!recognition) return alert("Speech recognition not supported.");
-    recognition.start();
+    if (!recognitionRef.current) return;
+    recognitionRef.current.start();
     setListening(true);
-    setStatus("Listening... 🟢");
-    resetSilenceTimer();
   };
 
   const stopListening = () => {
-    if (!recognition) return;
-    recognition.stop();
+    if (!recognitionRef.current) return;
+    recognitionRef.current.stop();
     setListening(false);
-    if (silenceTimer.current) clearTimeout(silenceTimer.current);
-    setStatus("Idle");
   };
 
-  // --- Text-to-Speech ---
+  // Speak Text with chosen voice, pitch, rate
   const speakText = () => {
-    if (!text) return;
+    if (!text.trim()) return alert("No text to speak!");
+
+    const synth = window.speechSynthesis;
+    if (!synth) {
+      alert("Speech synthesis not supported in this browser.");
+      return;
+    }
+
+    synth.cancel(); // stop ongoing speech
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
+    utterance.rate = rate;
+    utterance.pitch = pitch;
+
+    const voice = voices.find((v) => v.name === selectedVoice);
+    if (voice) utterance.voice = voice;
+
+    synth.speak(utterance);
   };
 
   return (
     <div
       style={{
         height: "100vh",
-        background: "#f0f0f0",
+        background: "#f9fafb",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        gap: "1rem",
-        fontFamily: "sans-serif",
+        gap: "1.5rem",
+        padding: "2rem",
       }}
     >
-      <h2>🎤 Speech to Text & 🔊 Text to Speech</h2>
-      <p>Status: {status}</p>
+      <h2>🎙️ Speech to Text + 🔊 Natural Text to Speech</h2>
+
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={8}
         cols={50}
         placeholder="Speak or type here..."
-        style={{ padding: "0.5rem", borderRadius: "6px" }}
+        style={{
+          padding: "10px",
+          borderRadius: "8px",
+          fontSize: "16px",
+          border: "1px solid #ccc",
+          width: "80%",
+          maxWidth: "600px",
+        }}
       />
+
       <div style={{ display: "flex", gap: "1rem" }}>
         {!listening ? (
-          <button onClick={startListening}>Start Listening</button>
+          <button onClick={startListening}>🎤 Start Listening</button>
         ) : (
-          <button onClick={stopListening}>Stop Listening</button>
+          <button onClick={stopListening}>🛑 Stop Listening</button>
         )}
         <button onClick={speakText}>🔊 Speak Text</button>
       </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.5rem",
+          width: "80%",
+          maxWidth: "600px",
+          background: "#fff",
+          padding: "1rem",
+          borderRadius: "10px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+        }}
+      >
+        <label>
+          🎤 Choose Voice:{" "}
+          <select
+            value={selectedVoice || ""}
+            onChange={(e) => setSelectedVoice(e.target.value)}
+            style={{ padding: "6px", borderRadius: "6px" }}
+          >
+            {voices.map((v, idx) => (
+              <option key={idx} value={v.name}>
+                {v.name} ({v.lang})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          🏃 Rate: {rate.toFixed(1)}
+          <input
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.1"
+            value={rate}
+            onChange={(e) => setRate(Number(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </label>
+
+        <label>
+          🎵 Pitch: {pitch.toFixed(1)}
+          <input
+            type="range"
+            min="0.5"
+            max="2"
+            step="0.1"
+            value={pitch}
+            onChange={(e) => setPitch(Number(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </label>
+      </div>
+
       {listening && <p>Listening... 🟢</p>}
     </div>
   );
