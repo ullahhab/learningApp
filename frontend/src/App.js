@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { sendRequest } from "./utils/sendBackend";
 
 function App() {
   const [listening, setListening] = useState(false);
@@ -65,10 +66,12 @@ function App() {
     setListening(true);
   };
 
-  const stopListening = () => {
+  const stopListening = async () => {
     if (!recognitionRef.current) return;
     recognitionRef.current.stop();
     setListening(false);
+    console.log("getting here")
+    await sendRequest(text) 
   };
 
   // Speak Text with chosen voice, pitch, rate

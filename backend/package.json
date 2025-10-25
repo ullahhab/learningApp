@@ -9,5 +9,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "module",
+  "devDependencies": {
+    "@google/genai": "^1.27.0",
+    "vercel": "^48.6.0"
+  }
 }
