@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { sendRequest } from "./utils/sendBackend";
+import { ClipLoader } from "react-spinners";
 
 function App() {
   const [listening, setListening] = useState(false);
@@ -8,8 +9,9 @@ function App() {
   const [selectedVoice, setSelectedVoice] = useState(null);
   const [rate, setRate] = useState(1);
   const [pitch, setPitch] = useState(1);
-
+  const [loading, setLoading] = useState(false);
   const recognitionRef = useRef(null);
+  const [url, setUrl] = useState("")
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -70,8 +72,10 @@ function App() {
     if (!recognitionRef.current) return;
     recognitionRef.current.stop();
     setListening(false);
-    console.log("getting here")
-    await sendRequest(text) 
+    console.log("getting here", url);
+    setLoading(true);
+    await sendRequest("GET", text, url);
+    setLoading(false);
   };
 
   // Speak Text with chosen voice, pitch, rate
@@ -110,7 +114,21 @@ function App() {
       }}
     >
       <h2>🎙️ Speech to Text + 🔊 Natural Text to Speech</h2>
-
+      <textarea
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        rows={1}
+        cols={4}
+        placeholder="Enter your url here"
+        style={{
+          padding:"10px",
+          borderRadius: "2px",
+          fontSize: "16px",
+          border: "1px solid #ccc",
+          width: "50%",
+          maxWidth: "600px"
+        }}
+      />
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -192,6 +210,7 @@ function App() {
       </div>
 
       {listening && <p>Listening... 🟢</p>}
+      {loading && <ClipLoader color="#36d7b7" />}
     </div>
   );
 }

@@ -1,13 +1,23 @@
-import axios from "axios";
-export async function sendRequest(payload){
-    console.log("getting here", payload);
+export async function sendRequest(method, body, url){
     try{
-        const res = await axios.post("https://learning-8e4vrhcvn-hammadullahris-1789s-projects.vercel.app/api/handler",payload);
-        console.log(payload);
+        let payload = {
+            method: method,
+            headers: {
+                "Content-Type": 'application/json'
+                //Since this is free not authnetication will be needed but I will hide my details with post your url kind of a situation!
+            }
+        }
+        if(method!=="GET"){
+            payload.body = body
+        }
+        console.log("payload before sending", payload);
+        const res = await fetch(url, payload)
+        console.log("payoload is", payload);
         console.log(res);
         return res;
     }
     catch(error){
+        console.log("error", error);
         return {statusCode: 500, body:error.message}
     }
 }
