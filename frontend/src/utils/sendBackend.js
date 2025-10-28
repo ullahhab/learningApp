@@ -8,13 +8,14 @@ export async function sendRequest(method, body, url){
             }
         }
         if(method!=="GET"){
-            payload.body = body
+            payload.body = JSON.stringify(body)
         }
         console.log("payload before sending", payload);
-        const res = await fetch(url, payload)
+        const res = await fetch(url, payload);
+        const data = await res.json();
         console.log("payoload is", payload);
-        console.log(res);
-        return res;
+        console.log("Response", JSON.stringify(data));
+        return data.body;
     }
     catch(error){
         console.log("error", error);

@@ -12,6 +12,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const recognitionRef = useRef(null);
   const [url, setUrl] = useState("")
+  let aiReply = ""
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -74,14 +75,18 @@ function App() {
     setListening(false);
     console.log("getting here", url);
     setLoading(true);
-    await sendRequest("GET", text, url);
+    const res = await sendRequest("POST", text, url);
+    console.log("response", res);
+    setText(res);
+    //console.log(data);
+    aiReply = res;
+    console.log(aiReply);
     setLoading(false);
   };
 
   // Speak Text with chosen voice, pitch, rate
   const speakText = () => {
     if (!text.trim()) return alert("No text to speak!");
-
     const synth = window.speechSynthesis;
     if (!synth) {
       alert("Speech synthesis not supported in this browser.");
