@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { sendRequest } from "./utils/sendBackend";
+import { ClipLoader } from "react-spinners";
 
 function App() {
   const [listening, setListening] = useState(false);
@@ -7,8 +9,11 @@ function App() {
   const [selectedVoice, setSelectedVoice] = useState(null);
   const [rate, setRate] = useState(1);
   const [pitch, setPitch] = useState(1);
-
+  const [loading, setLoading] = useState(false);
   const recognitionRef = useRef(null);
+  const [url, setUrl] = useState("")
+  const [speaking, setSpeaking] = useState(false);
+  let aiReply = ""
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -65,16 +70,24 @@ function App() {
     setListening(true);
   };
 
-  const stopListening = () => {
+  const stopListening = async () => {
     if (!recognitionRef.current) return;
     recognitionRef.current.stop();
     setListening(false);
+    console.log("getting here", url);
+    setLoading(true);
+    const res = await sendRequest("POST", text, url);
+    console.log("response", res);
+    setText(res);
+    //console.log(data);
+    aiReply = res;
+    console.log(aiReply);
+    setLoading(false);
   };
 
   // Speak Text with chosen voice, pitch, rate
   const speakText = () => {
     if (!text.trim()) return alert("No text to speak!");
-
     const synth = window.speechSynthesis;
     if (!synth) {
       alert("Speech synthesis not supported in this browser.");
@@ -91,7 +104,16 @@ function App() {
     if (voice) utterance.voice = voice;
 
     synth.speak(utterance);
+    setSpeaking(true);
   };
+
+  const stopSpeak = () => {
+    const synth = window.speechSynthesis;
+    if(synth.speaking){
+      synth.cancel();
+    }
+    setSpeaking(false);
+  }
 
   return (
     <div
@@ -107,7 +129,21 @@ function App() {
       }}
     >
       <h2>🎙️ Speech to Text + 🔊 Natural Text to Speech</h2>
-
+      <textarea
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        rows={1}
+        cols={4}
+        placeholder="Enter your url here"
+        style={{
+          padding:"10px",
+          borderRadius: "2px",
+          fontSize: "16px",
+          border: "1px solid #ccc",
+          width: "50%",
+          maxWidth: "600px"
+        }}
+      />
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -130,7 +166,11 @@ function App() {
         ) : (
           <button onClick={stopListening}>🛑 Stop Listening</button>
         )}
-        <button onClick={speakText}>🔊 Speak Text</button>
+        {!speaking? (
+          <button onClick={speakText}>🔊 Speak Text</button>
+        ) : (
+          <button onClick={stopSpeak}>🛑 Stop Speak</button>
+        )}
       </div>
 
       <div
@@ -189,6 +229,7 @@ function App() {
       </div>
 
       {listening && <p>Listening... 🟢</p>}
+      {loading && <ClipLoader color="#36d7b7" />}
     </div>
   );
 }
