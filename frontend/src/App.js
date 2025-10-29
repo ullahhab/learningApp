@@ -12,6 +12,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const recognitionRef = useRef(null);
   const [url, setUrl] = useState("")
+  const [speaking, setSpeaking] = useState(false);
   let aiReply = ""
 
   // Initialize Speech Recognition
@@ -103,7 +104,16 @@ function App() {
     if (voice) utterance.voice = voice;
 
     synth.speak(utterance);
+    setSpeaking(true);
   };
+
+  const stopSpeak = () => {
+    const synth = window.speechSynthesis;
+    if(synth.speaking){
+      synth.cancel();
+    }
+    setSpeaking(false);
+  }
 
   return (
     <div
@@ -156,7 +166,11 @@ function App() {
         ) : (
           <button onClick={stopListening}>🛑 Stop Listening</button>
         )}
-        <button onClick={speakText}>🔊 Speak Text</button>
+        {!speaking? (
+          <button onClick={speakText}>🔊 Speak Text</button>
+        ) : (
+          <button onClick={stopSpeak}>🛑 Stop Speak</button>
+        )}
       </div>
 
       <div
